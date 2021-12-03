@@ -135,7 +135,7 @@ def post_boats():
     new_boat["self"] = self_url
     return (jsonify(new_boat), 201)
 
-# get route for /boats/boat_id
+# get, patch, put, and delete routes for /boats/boat_id
 @app.route('/boats/<boat_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
 def get_patch_put_delete_boat(boat_id):
   boat_key = client.key(constants.boats, int(boat_id))
@@ -296,6 +296,7 @@ def get_patch_put_delete_boat(boat_id):
     client.delete(boat)
     return('', 204)
 
+# post route for /loads
 @app.route('/loads', methods=['POST'])
 def post_loads():
   if request.method == 'POST':
@@ -322,6 +323,27 @@ def post_loads():
     new_load["id"] = new_load.key.id
     new_load["self"] = self_url
     return (jsonify(new_load), 201)
+
+# get route for /loads/load_id
+@app.route('/loads/<load_id>', methods=['GET'])
+def get_load(load_id):
+  load_key = client.key(constants.loads, int(load_id))
+  load = client.get(key=load_key)
+
+  if request.method == 'GET':
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    # if the load does not exist, return 404
+    if not load:
+      return (jsonify({"Error": "No load with this load_id exists"}), 404)
+
+    # return load and 200
+    load["self"] = request.base_url
+    load["id"] = load_id
+    return (jsonify(load), 200)
+
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
