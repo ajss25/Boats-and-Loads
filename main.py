@@ -137,7 +137,7 @@ def post_boats():
 
 # get route for /boats/boat_id
 @app.route('/boats/<boat_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
-def get_boat(boat_id):
+def get_patch_put_delete_boat(boat_id):
   boat_key = client.key(constants.boats, int(boat_id))
   boat = client.get(key=boat_key)
 
@@ -296,6 +296,32 @@ def get_boat(boat_id):
     client.delete(boat)
     return('', 204)
 
+@app.route('/loads', methods=['POST'])
+def post_loads():
+  if request.method == 'POST':
+    content = request.get_json()
+    
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    # if the request is missing any of the required attributes, return 400
+    if "volume" not in content or "content" not in content or "creation_date" not in content:
+      return (jsonify({"Error": "The request object is missing at least one of the required attributes"}), 400)
+  
+    new_load = datastore.entity.Entity(key=client.key(constants.loads))
+    new_load.update({
+      "volume": content["volume"],
+      "content": content["content"],
+      "creation_date": content["creation_date"],
+      "carrier": None
+    })
+    client.put(new_load)
+
+    self_url = request.base_url + "/" + str(new_load.key.id)
+    new_load["id"] = new_load.key.id
+    new_load["self"] = self_url
+    return (jsonify(new_load), 201)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
