@@ -514,8 +514,8 @@ def get_load(load_id):
       client.delete(load)
     return('', 204)
 
-# put route for /boats/boat_id/loads/load_id
-@app.route('/boats/<boat_id>/loads/<load_id>', methods=['PUT'])
+# put and delete routes for /boats/boat_id/loads/load_id
+@app.route('/boats/<boat_id>/loads/<load_id>', methods=['PUT', 'DELETE'])
 def boats_and_loads(boat_id, load_id):
   boat_key = client.key(constants.boats, int(boat_id))
   boat = client.get(key=boat_key)
@@ -539,6 +539,24 @@ def boats_and_loads(boat_id, load_id):
       client.put(load)
 
       return ('', 204)
+  
+  # remove a load from a boat 
+  elif request.method == 'DELETE':
+    # if the boat or load does not exist, return 404
+    if not boat or not load:
+      return (jsonify({"Error": "The specified boat and/or load does not exist"}), 404)
+
+    # iterate over boat's loads, and if the load is on the boat, remove the load from boat and update load's carrier and return response
+    for loaded in boat["loads"]:
+      if loaded["id"] == str(load.key.id):
+        boat["loads"].remove(loaded)
+        client.put(boat)
+        load["carrier"] = None
+        client.put(load)
+        return ('', 204)
+
+    # return 403 if the load is not on the boat
+    return (jsonify({"Error": "No load with this load_id is at the boat with this boat_id"}), 403)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
