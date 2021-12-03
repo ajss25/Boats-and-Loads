@@ -175,6 +175,7 @@ def post_boats():
     for boat in results:
       if boat["owner"] == userid:
         boat["id"] = boat.key.id
+        boat["self"] = request.base_url + "/" + str(boat.key.id)
         user_boats.append(boat)
     
     response = {"boats": user_boats}
@@ -407,7 +408,8 @@ def post_loads():
 
     for load in results:
       load["id"] = load.key.id
-    
+      load["self"] = request.base_url + "/" + str(load.key.id)
+
     response = {"loads": results}
 
     # add total number of loads for user in response
