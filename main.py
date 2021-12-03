@@ -325,7 +325,7 @@ def post_loads():
     return (jsonify(new_load), 201)
 
 # get route for /loads/load_id
-@app.route('/loads/<load_id>', methods=['GET'])
+@app.route('/loads/<load_id>', methods=['GET', 'PATCH'])
 def get_load(load_id):
   load_key = client.key(constants.loads, int(load_id))
   load = client.get(key=load_key)
@@ -340,6 +340,34 @@ def get_load(load_id):
       return (jsonify({"Error": "No load with this load_id exists"}), 404)
 
     # return load and 200
+    load["self"] = request.base_url
+    load["id"] = load_id
+    return (jsonify(load), 200)
+
+  if request.method == 'PATCH':
+    content = request.get_json()
+
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    # if the load does not exist, return 404
+    if not load:
+      return (jsonify({"Error": "No load with this load_id exists"}), 404)
+
+    # if the request does not provide exactly one or two attributes to edit, return 400
+    if len(content) != 1 and len(content) != 2:
+      return (jsonify({"Error": "The request object did not provide a subset of the required attributes"}), 400)
+
+    # patch the load and return 200
+    if "volume" in content:
+      load.update({"volume": content["volume"]})
+    if "content" in content:
+      load.update({"content": content["content"]})
+    if "creation_date" in content:
+      load.update({"creation_date": content["creation_date"]})
+    client.put(load)
+
     load["self"] = request.base_url
     load["id"] = load_id
     return (jsonify(load), 200)
