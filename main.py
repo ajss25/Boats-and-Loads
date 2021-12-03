@@ -136,42 +136,91 @@ def post_boats():
     return (jsonify(new_boat), 201)
 
 # get route for /boats/boat_id
-@app.route('/boats/<boat_id>', methods=['GET'])
+@app.route('/boats/<boat_id>', methods=['GET', 'PATCH'])
 def get_boat(boat_id):
   boat_key = client.key(constants.boats, int(boat_id))
   boat = client.get(key=boat_key)
 
-  # if the request is missing a JWT, return 401
-  if not request.headers.get('Authorization'):
-    return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+  if request.method == 'GET':
+    # if the request is missing a JWT, return 401
+    if not request.headers.get('Authorization'):
+      return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+    
+    # get the JWT from the request
+    # reference: https://stackoverflow.com/questions/63518441/how-to-read-a-bearer-token-from-postman-into-python-code
+    request_JWT = request.headers.get('Authorization').split()[1]
+
+    # if the JWT is invalid, return 401
+    # reference: https://developers.google.com/identity/sign-in/web/backend-auth
+    try:
+      idinfo = id_token.verify_oauth2_token(request_JWT, google.auth.transport.requests.Request(), CLIENT_ID)
+      userid = idinfo['sub']
+    except ValueError:
+      return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    # if the boat does not exist, return 404
+    if not boat:
+      return (jsonify({"Error": "No boat with this boat_id exists"}), 404)
+
+    # if the boat does not belong to the user making the request, return 403
+    if boat["owner"] != userid:
+      return (jsonify({"Error": "The user making the request does not have access to this resource"}), 403)
+
+    boat["self"] = request.base_url
+    boat["id"] = boat_id
+    return (jsonify(boat), 200)
   
-  # get the JWT from the request
-  # reference: https://stackoverflow.com/questions/63518441/how-to-read-a-bearer-token-from-postman-into-python-code
-  request_JWT = request.headers.get('Authorization').split()[1]
+  if request.method == 'PATCH':
+    content = request.get_json()
 
-  # if the JWT is invalid, return 401
-  # reference: https://developers.google.com/identity/sign-in/web/backend-auth
-  try:
-    idinfo = id_token.verify_oauth2_token(request_JWT, google.auth.transport.requests.Request(), CLIENT_ID)
-    userid = idinfo['sub']
-  except ValueError:
-    return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+    # if the request is missing a JWT, return 401
+    if not request.headers.get('Authorization'):
+      return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+    
+    # get the JWT from the request
+    # reference: https://stackoverflow.com/questions/63518441/how-to-read-a-bearer-token-from-postman-into-python-code
+    request_JWT = request.headers.get('Authorization').split()[1]
 
-  # if the request contains accept header besides application/json, or is missing accept header, return 406
-  if 'application/json' not in request.accept_mimetypes:
-    return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+    # if the JWT is invalid, return 401
+    # reference: https://developers.google.com/identity/sign-in/web/backend-auth
+    try:
+      idinfo = id_token.verify_oauth2_token(request_JWT, google.auth.transport.requests.Request(), CLIENT_ID)
+      userid = idinfo['sub']
+    except ValueError:
+      return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
 
-  # if the boat does not exist, return 404
-  if not boat:
-    return (jsonify({"Error": "No boat with this boat_id exists"}), 404)
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
 
-  # if the boat does not belong to the user making the request, return 403
-  if boat["owner"] != userid:
-    return (jsonify({"Error": "The user making the request does not have access to this resource"}), 403)
+    # if the boat does not exist, return 404
+    if not boat:
+      return (jsonify({"Error": "No boat with this boat_id exists"}), 404)
 
-  boat["self"] = request.base_url
-  boat["id"] = boat_id
-  return (jsonify(boat), 200)
+    # if the boat does not belong to the user making the request, return 403
+    if boat["owner"] != userid:
+      return (jsonify({"Error": "The user making the request does not have access to this resource"}), 403)
+
+    # if the request does not provide exactly one or two attributes to edit, return 400
+    if len(content) != 1 and len(content) != 2:
+      return (jsonify({"Error": "The request object did not provide a subset of the required attributes"}), 400)
+
+    # patch the boat and return 200
+    if "name" in content:
+      boat.update({"name": content["name"]})
+    if "type" in content:
+      boat.update({"type": content["type"]})
+    if "length" in content:
+      boat.update({"length": content["length"]})
+    client.put(boat)
+
+    boat["self"] = request.base_url
+    boat["id"] = boat_id
+    return (jsonify(boat), 200)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
