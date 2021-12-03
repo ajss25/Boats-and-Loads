@@ -410,8 +410,18 @@ def get_load(load_id):
     if not load:
       return (jsonify({"Error": "No load with this load_id exists"}), 404)
 
-    # delete the load and return 204
-    client.delete(load)
+    # update boat with the load before deleting load
+    if not load["carrier"]:
+      client.delete(load)
+    else:
+      boat_key = client.key(constants.boats, int(load["carrier"]["id"]))
+      boat = client.get(key=boat_key)
+      for loaded in boat["loads"]:
+        if loaded["id"] == str(load.key.id):
+          boat["loads"].remove(loaded)
+          client.put(boat)
+          break
+      client.delete(load)
     return('', 204)
 
 if __name__ == '__main__':
