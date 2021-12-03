@@ -40,21 +40,55 @@ def index():
 @app.route('/oauth')
 def oauth():
   # client sends access code and client secret to server
-	auth_code = flask.request.args.get('code') 
-	data = {
+  auth_code = flask.request.args.get('code') 
+  data = {
     'code': auth_code,
     'client_id': CLIENT_ID,
     'client_secret': CLIENT_SECRET,
     'redirect_uri': REDIRECT_URI,
     'grant_type': 'authorization_code'
   }
-	r = requests.post('https://www.googleapis.com/oauth2/v4/token', data=data)
+  r = requests.post('https://www.googleapis.com/oauth2/v4/token', data=data)
 
 	# get JWT from the server
-	JWT = r.json()["id_token"]
+  JWT = r.json()["id_token"]
+  
+  # get sub-value from the JWT
+  # reference: https://developers.google.com/identity/sign-in/web/backend-auth
+  idinfo = id_token.verify_oauth2_token(JWT, google.auth.transport.requests.Request(), CLIENT_ID)
+  userid = idinfo['sub']
 
+  # query datastore for all users
+  query = client.query(kind=constants.users)
+  results = list(query.fetch())
+
+  # check if user with the sub-value already exists
+  user_exists = False
+  for user in results:
+    if user['id'] == userid:
+      user_exists = True
+      break
+  
+  # if user does not exist, add user to the datastore with boats initialized empty
+  if not user_exists:
+    new_user = datastore.entity.Entity(key=client.key(constants.users))
+    new_user.update({"id": userid, "boats": []})
+    client.put(new_user)
+  
 	# render oauth page with the received JWT value 
-	return render_template("oauth.html", JWT_value=JWT)
+  return render_template("oauth.html", JWT_value=JWT)
+
+# get route for /users
+@app.route('/users', methods=['GET'])
+def get_users():
+  if request.method == 'GET':
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    query = client.query(kind=constants.users)
+    results = list(query.fetch())
+    return (jsonify(results), 200)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
