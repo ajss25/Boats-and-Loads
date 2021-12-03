@@ -69,10 +69,10 @@ def oauth():
       user_exists = True
       break
   
-  # if user does not exist, add user to the datastore with boats initialized empty
+  # if user does not exist, add user to the datastore
   if not user_exists:
     new_user = datastore.entity.Entity(key=client.key(constants.users))
-    new_user.update({"id": userid, "boats": []})
+    new_user.update({"id": userid})
     client.put(new_user)
   
 	# render oauth page with the received JWT value 
