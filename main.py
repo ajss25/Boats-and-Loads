@@ -421,7 +421,6 @@ def post_loads():
 
     # return response and 200
     return (jsonify(response), 200)
-    
 
 # get route for /loads/load_id
 @app.route('/loads/<load_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
@@ -514,6 +513,32 @@ def get_load(load_id):
           break
       client.delete(load)
     return('', 204)
+
+# put route for /boats/boat_id/loads/load_id
+@app.route('/boats/<boat_id>/loads/<load_id>', methods=['PUT'])
+def boats_and_loads(boat_id, load_id):
+  boat_key = client.key(constants.boats, int(boat_id))
+  boat = client.get(key=boat_key)
+  load_key = client.key(constants.loads, int(load_id))
+  load = client.get(key=load_key)
+
+  # assign a load to a boat
+  if request.method == 'PUT':
+    # if the boat or load does not exist, return 404
+    if not boat or not load:
+      return (jsonify({"Error": "The specified boat and/or load does not exist"}), 404)
+    # if the load is already assigned to a boat, return 403
+    elif load["carrier"] is not None:
+      return (jsonify({"Error": "The load is already assigned to another boat"}), 403)
+    # else add load to boat, add boat to load's carrier, and return response
+    else:
+      boat["loads"].append({"id": str(load.key.id)})
+      client.put(boat)
+
+      load["carrier"] = {"id": str(boat_id), "name": boat["name"]}
+      client.put(load)
+
+      return ('', 204)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
