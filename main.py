@@ -90,6 +90,9 @@ def get_users():
     results = list(query.fetch())
     return (jsonify(results), 200)
 
+  else:
+    return (jsonify({"Error": "Method Not Allowed"}), 405)
+
 # post route for /boats
 @app.route('/boats', methods=['POST', 'GET'])
 def post_boats():
@@ -190,6 +193,9 @@ def post_boats():
     # return response and 200
     return (jsonify(response), 200)
 
+  else:
+    return (jsonify({"Error": "Method Not Allowed"}), 405)
+
 # get, patch, put, and delete routes for /boats/boat_id
 @app.route('/boats/<boat_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
 def get_patch_put_delete_boat(boat_id):
@@ -229,7 +235,7 @@ def get_patch_put_delete_boat(boat_id):
     boat["id"] = boat_id
     return (jsonify(boat), 200)
   
-  if request.method == 'PATCH':
+  elif request.method == 'PATCH':
     content = request.get_json()
 
     # if the request is missing a JWT, return 401
@@ -359,6 +365,9 @@ def get_patch_put_delete_boat(boat_id):
       client.delete(boat)
     return('', 204)
 
+  else:
+    return (jsonify({"Error": "Method Not Allowed"}), 405)
+
 # post route for /loads
 @app.route('/loads', methods=['POST', 'GET'])
 def post_loads():
@@ -387,7 +396,7 @@ def post_loads():
     new_load["self"] = self_url
     return (jsonify(new_load), 201)
   
-  if request.method == 'GET':
+  elif request.method == 'GET':
     # if the request contains accept header besides application/json, or is missing accept header, return 406
     if 'application/json' not in request.accept_mimetypes:
       return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
@@ -422,6 +431,9 @@ def post_loads():
     # return response and 200
     return (jsonify(response), 200)
 
+  else:
+    return (jsonify({"Error": "Method Not Allowed"}), 405)
+
 # get route for /loads/load_id
 @app.route('/loads/<load_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
 def get_load(load_id):
@@ -442,7 +454,7 @@ def get_load(load_id):
     load["id"] = load_id
     return (jsonify(load), 200)
 
-  if request.method == 'PATCH':
+  elif request.method == 'PATCH':
     content = request.get_json()
 
     # if the request contains accept header besides application/json, or is missing accept header, return 406
@@ -514,6 +526,9 @@ def get_load(load_id):
       client.delete(load)
     return('', 204)
 
+  else:
+    return (jsonify({"Error": "Method Not Allowed"}), 405)
+
 # put and delete routes for /boats/boat_id/loads/load_id
 @app.route('/boats/<boat_id>/loads/<load_id>', methods=['PUT', 'DELETE'])
 def boats_and_loads(boat_id, load_id):
@@ -557,6 +572,9 @@ def boats_and_loads(boat_id, load_id):
 
     # return 403 if the load is not on the boat
     return (jsonify({"Error": "No load with this load_id is at the boat with this boat_id"}), 403)
+
+  else:
+    return (jsonify({"Error": "Method Not Allowed"}), 405)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
