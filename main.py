@@ -76,7 +76,7 @@ def oauth():
     client.put(new_user)
   
 	# render oauth page with the received JWT value 
-  return render_template("oauth.html", JWT_value=JWT)
+  return render_template("oauth.html", JWT_value=JWT, id_value=userid)
 
 # get route for /users
 @app.route('/users', methods=['GET'])
