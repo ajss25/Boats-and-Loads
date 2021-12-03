@@ -359,7 +359,7 @@ def get_patch_put_delete_boat(boat_id):
     return('', 204)
 
 # post route for /loads
-@app.route('/loads', methods=['POST'])
+@app.route('/loads', methods=['POST', 'GET'])
 def post_loads():
   if request.method == 'POST':
     content = request.get_json()
@@ -385,6 +385,41 @@ def post_loads():
     new_load["id"] = new_load.key.id
     new_load["self"] = self_url
     return (jsonify(new_load), 201)
+  
+  if request.method == 'GET':
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    # get all loads with pagination
+    query = client.query(kind=constants.loads)
+    q_limit = int(request.args.get('limit', '5'))
+    q_offset = int(request.args.get('offset', '0'))
+    l_iterator = query.fetch(limit=q_limit, offset=q_offset)
+    pages = l_iterator.pages
+    results = list(next(pages))
+
+    if l_iterator.next_page_token:
+      next_offset = q_offset + q_limit
+      next_url = request.base_url + "?limit=" + str(q_limit) + "&offset=" + str(next_offset)
+    else:
+      next_url = None
+
+    for load in results:
+      load["id"] = load.key.id
+    
+    response = {"loads": results}
+
+    # add total number of loads for user in response
+    response["total"] = len(results)
+
+    # add next url if more than five loads for user
+    if next_url:
+      response["next"] = next_url
+
+    # return response and 200
+    return (jsonify(response), 200)
+    
 
 # get route for /loads/load_id
 @app.route('/loads/<load_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
