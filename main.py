@@ -292,8 +292,16 @@ def get_patch_put_delete_boat(boat_id):
     if boat["owner"] != userid:
       return (jsonify({"Error": "The user making the request does not have access to this resource"}), 403)
 
-    # delete the boat and return 204
-    client.delete(boat)
+    # remove boat from load entities before deleting the boat
+    if not boat["loads"]:
+      client.delete(boat)
+    else:
+      for loaded in boat["loads"]:
+        load_key = client.key(constants.loads, int(loaded["id"]))
+        load = client.get(key=load_key)
+        load["carrier"] = None
+        client.put(load)
+      client.delete(boat)
     return('', 204)
 
 # post route for /loads
