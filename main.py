@@ -91,7 +91,7 @@ def get_users():
     return (jsonify(results), 200)
 
 # post route for /boats
-@app.route('/boats', methods=['POST'])
+@app.route('/boats', methods=['POST', 'GET'])
 def post_boats():
   if request.method == 'POST':
     content = request.get_json()
@@ -134,6 +134,60 @@ def post_boats():
     new_boat["id"] = new_boat.key.id
     new_boat["self"] = self_url
     return (jsonify(new_boat), 201)
+
+  elif request.method == 'GET':
+    # if the request is missing a JWT, return 401
+    if not request.headers.get('Authorization'):
+      return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+    
+    # get the JWT from the request
+		# reference: https://stackoverflow.com/questions/63518441/how-to-read-a-bearer-token-from-postman-into-python-code
+    request_JWT = request.headers.get('Authorization').split()[1]
+
+    # if the JWT is invalid, return 401
+    # reference: https://developers.google.com/identity/sign-in/web/backend-auth
+    try:
+      idinfo = id_token.verify_oauth2_token(request_JWT, google.auth.transport.requests.Request(), CLIENT_ID)
+      userid = idinfo['sub']
+    except ValueError:
+      return (jsonify({"Error": "The request object is missing a JWT or contains invalid JWT"}), 401)
+    
+    # if the request contains accept header besides application/json, or is missing accept header, return 406
+    if 'application/json' not in request.accept_mimetypes:
+      return (jsonify({"Error": "MIME type not supported by the endpoint or the Accept header is missing"}), 406)
+
+    # get all boats with pagination
+    query = client.query(kind=constants.boats)
+    q_limit = int(request.args.get('limit', '5'))
+    q_offset = int(request.args.get('offset', '0'))
+    l_iterator = query.fetch(limit=q_limit, offset=q_offset)
+    pages = l_iterator.pages
+    results = list(next(pages))
+
+    if l_iterator.next_page_token:
+      next_offset = q_offset + q_limit
+      next_url = request.base_url + "?limit=" + str(q_limit) + "&offset=" + str(next_offset)
+    else:
+      next_url = None
+
+    user_boats = []
+
+    for boat in results:
+      if boat["owner"] == userid:
+        boat["id"] = boat.key.id
+        user_boats.append(boat)
+    
+    response = {"boats": user_boats}
+
+    # add total number of boats for user in response
+    response["total"] = len(user_boats)
+
+    # add next url if more than five boats for user
+    if next_url:
+      response["next"] = next_url
+
+    # return response and 200
+    return (jsonify(response), 200)
 
 # get, patch, put, and delete routes for /boats/boat_id
 @app.route('/boats/<boat_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
