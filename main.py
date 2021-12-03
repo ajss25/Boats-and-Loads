@@ -325,7 +325,7 @@ def post_loads():
     return (jsonify(new_load), 201)
 
 # get route for /loads/load_id
-@app.route('/loads/<load_id>', methods=['GET', 'PATCH', 'PUT'])
+@app.route('/loads/<load_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
 def get_load(load_id):
   load_key = client.key(constants.loads, int(load_id))
   load = client.get(key=load_key)
@@ -396,6 +396,15 @@ def get_load(load_id):
     load["self"] = request.base_url
     load["id"] = load_id
     return (jsonify(load), 200)
+  
+  elif request.method == 'DELETE':
+    # if the load does not exist, return 404
+    if not load:
+      return (jsonify({"Error": "No load with this load_id exists"}), 404)
+
+    # delete the load and return 204
+    client.delete(load)
+    return('', 204)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
