@@ -90,9 +90,6 @@ def get_users():
     results = list(query.fetch())
     return (jsonify(results), 200)
 
-  else:
-    return (jsonify({"Error": "Method Not Allowed"}), 405)
-
 # post route for /boats
 @app.route('/boats', methods=['POST', 'GET'])
 def post_boats():
@@ -192,9 +189,6 @@ def post_boats():
 
     # return response and 200
     return (jsonify(response), 200)
-
-  else:
-    return (jsonify({"Error": "Method Not Allowed"}), 405)
 
 # get, patch, put, and delete routes for /boats/boat_id
 @app.route('/boats/<boat_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
@@ -365,9 +359,6 @@ def get_patch_put_delete_boat(boat_id):
       client.delete(boat)
     return('', 204)
 
-  else:
-    return (jsonify({"Error": "Method Not Allowed"}), 405)
-
 # post route for /loads
 @app.route('/loads', methods=['POST', 'GET'])
 def post_loads():
@@ -430,9 +421,6 @@ def post_loads():
 
     # return response and 200
     return (jsonify(response), 200)
-
-  else:
-    return (jsonify({"Error": "Method Not Allowed"}), 405)
 
 # get route for /loads/load_id
 @app.route('/loads/<load_id>', methods=['GET', 'PATCH', 'PUT', 'DELETE'])
@@ -573,8 +561,11 @@ def boats_and_loads(boat_id, load_id):
     # return 403 if the load is not on the boat
     return (jsonify({"Error": "No load with this load_id is at the boat with this boat_id"}), 403)
 
-  else:
-    return (jsonify({"Error": "Method Not Allowed"}), 405)
+# Return 405 for requests not implemented therefore not allowed
+# reference: https://flask.palletsprojects.com/en/2.0.x/errorhandling/#error-handlers
+@app.errorhandler(405)
+def method_not_allowed(e):
+  return (jsonify({"Error": "Method Not Allowed"}), 405)
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
