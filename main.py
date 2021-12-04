@@ -513,9 +513,6 @@ def get_load(load_id):
       client.delete(load)
     return('', 204)
 
-  else:
-    return (jsonify({"Error": "Method Not Allowed"}), 405)
-
 # put and delete routes for /boats/boat_id/loads/load_id
 @app.route('/boats/<boat_id>/loads/<load_id>', methods=['PUT', 'DELETE'])
 def boats_and_loads(boat_id, load_id):
