@@ -1,13 +1,12 @@
 from google.cloud import datastore
-from flask import Flask, request, jsonify, render_template
-import flask
-import requests
-import json
-import constants
 from google.oauth2 import id_token
 import google.auth.transport
-import yaml
+import flask
+from flask import Flask, request, jsonify, render_template
+import requests
+import constants
 import uuid
+import yaml
 
 # instantiate flask app and datastore client
 app = Flask(__name__)
