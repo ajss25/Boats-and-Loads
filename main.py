@@ -157,6 +157,7 @@ def post_boats():
 
     # get all boats with pagination
     query = client.query(kind=constants.boats)
+    total = len(list(query.fetch()))
     q_limit = int(request.args.get('limit', '5'))
     q_offset = int(request.args.get('offset', '0'))
     l_iterator = query.fetch(limit=q_limit, offset=q_offset)
@@ -180,7 +181,7 @@ def post_boats():
     response = {"boats": user_boats}
 
     # add total number of boats for user in response
-    response["total"] = len(user_boats)
+    response["total"] = total
 
     # add next url if more than five boats for user
     if next_url:
@@ -224,8 +225,12 @@ def get_patch_put_delete_boat(boat_id):
     if boat["owner"] != userid:
       return (jsonify({"Error": "The user making the request does not have access to this resource"}), 403)
 
+    for loaded in boat["loads"]:
+      loaded["self"] = request.url_root + "loads/" + loaded["id"]
+      loaded["id"] = int(loaded["id"])
+
     boat["self"] = request.base_url
-    boat["id"] = boat_id
+    boat["id"] = int(boat_id)
     return (jsonify(boat), 200)
   
   elif request.method == 'PATCH':
@@ -273,7 +278,7 @@ def get_patch_put_delete_boat(boat_id):
     client.put(boat)
 
     boat["self"] = request.base_url
-    boat["id"] = boat_id
+    boat["id"] = int(boat_id)
     return (jsonify(boat), 200)
   
   elif request.method == 'PUT':
@@ -318,7 +323,7 @@ def get_patch_put_delete_boat(boat_id):
     client.put(boat)
 
     boat["self"] = request.base_url
-    boat["id"] = boat_id
+    boat["id"] = int(boat_id)
     return (jsonify(boat), 200)
 
   elif request.method == 'DELETE':
@@ -393,6 +398,7 @@ def post_loads():
 
     # get all loads with pagination
     query = client.query(kind=constants.loads)
+    total = len(list(query.fetch()))
     q_limit = int(request.args.get('limit', '5'))
     q_offset = int(request.args.get('offset', '0'))
     l_iterator = query.fetch(limit=q_limit, offset=q_offset)
@@ -412,7 +418,7 @@ def post_loads():
     response = {"loads": results}
 
     # add total number of loads for user in response
-    response["total"] = len(results)
+    response["total"] = total
 
     # add next url if more than five loads for user
     if next_url:
@@ -436,9 +442,13 @@ def get_load(load_id):
     if not load:
       return (jsonify({"Error": "No load with this load_id exists"}), 404)
 
+    if load["carrier"]:
+      load["carrier"]["self"] = request.url_root + "boats/" + load["carrier"]["id"]
+      load["carrier"]["id"] = int(load["carrier"]["id"])
+
     # return load and 200
     load["self"] = request.base_url
-    load["id"] = load_id
+    load["id"] = int(load_id)
     return (jsonify(load), 200)
 
   elif request.method == 'PATCH':
@@ -466,7 +476,7 @@ def get_load(load_id):
     client.put(load)
 
     load["self"] = request.base_url
-    load["id"] = load_id
+    load["id"] = int(load_id)
     return (jsonify(load), 200)
 
   elif request.method == 'PUT':
@@ -491,7 +501,7 @@ def get_load(load_id):
     client.put(load)
 
     load["self"] = request.base_url
-    load["id"] = load_id
+    load["id"] = int(load_id)
     return (jsonify(load), 200)
   
   elif request.method == 'DELETE':
